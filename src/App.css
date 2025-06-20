@@ -1,0 +1,186 @@
+/* General page container for consistent padding/margin */
+.page-container {
+  padding: 20px; /* Example padding */
+  box-sizing: border-box;
+  width: 100%;
+}
+
+/* --- HomePage Specific Styles --- */
+.homepage-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  color: #333;
+  font-family: 'Arial', sans-serif; /* Or your app's main font */
+  text-align: center; /* Center content by default */
+}
+
+.hero-section {
+  padding: 50px 20px; /* Increased padding */
+  background-color: rgba(255, 255, 255, 0.95); /* Slightly more opaque */
+  border-radius: 12px; /* Softer radius */
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1); /* Enhanced shadow */
+  margin-top: 40px; /* Space from top */
+  margin-bottom: 40px;
+  max-width: 750px; /* Slightly wider */
+  width: 90%; /* Responsive width */
+}
+
+.hero-title {
+  font-size: 2.7rem; /* Adjusted size */
+  color: #1a2533; /* Darker, more professional blue */
+  margin-bottom: 20px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.hero-subtitle {
+  font-size: 1.25rem; /* Adjusted size */
+  color: #4a5568; /* Softer gray */
+  margin-bottom: 30px;
+  line-height: 1.7; /* Increased line height for readability */
+}
+
+.cta-button {
+  display: inline-block;
+  background-image: linear-gradient(to right, #4facfe 0%, #00f2fe 100%); /* New gradient */
+  color: white;
+  padding: 16px 35px; /* Larger padding */
+  font-size: 1.15rem; /* Adjusted size */
+  font-weight: bold;
+  border: none; /* Remove border if any */
+  border-radius: 50px; /* Pill shape */
+  text-decoration: none;
+  transition: all 0.3s ease-in-out; /* Smooth transition for all properties */
+  box-shadow: 0 5px 15px rgba(0, 123, 255, 0.3); /* Softer shadow */
+}
+
+.cta-button:hover {
+  transform: translateY(-3px) scale(1.03); /* More noticeable hover effect */
+  box-shadow: 0 8px 20px rgba(0, 123, 255, 0.4);
+  background-image: linear-gradient(to right, #00f2fe 0%, #4facfe 100%); /* Invert gradient on hover */
+}
+
+.cta-button span[role="img"] { /* Style the emoji */
+  margin-left: 10px;
+  font-size: 1.3em; /* Make emoji slightly larger */
+  display: inline-block;
+  transition: transform 0.3s ease;
+}
+
+.cta-button:hover span[role="img"] {
+  transform: rotate(15deg) scale(1.1); /* Animate emoji on hover */
+}
+
+.features-section {
+  width: 100%;
+  max-width: 960px; /* Wider grid */
+  margin-bottom: 50px; /* More space */
+}
+
+.features-title {
+  font-size: 2.3rem; /* Adjusted size */
+  color: #1a2533;
+  margin-bottom: 35px; /* More space */
+}
+
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); /* Responsive columns */
+  gap: 30px; /* Increased gap */
+}
+
+.feature-card {
+  background-color: #ffffff;
+  padding: 30px; /* More padding */
+  border-radius: 10px;
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.08);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  text-align: left; /* Align text left for better readability */
+}
+
+.feature-card:hover {
+  transform: translateY(-6px); /* More pronounced hover */
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.12);
+}
+
+.feature-icon {
+  font-size: 2.8rem; /* Larger icon */
+  margin-bottom: 18px; /* More space */
+  color: #4facfe; /* Match button gradient */
+  display: block; /* Ensure it takes full width for centering if needed */
+  text-align: center; /* Center icon if it's a block */
+}
+
+.feature-card h3 {
+  font-size: 1.4rem; /* Adjusted size */
+  color: #2d3748; /* Darker gray */
+  margin-bottom: 12px;
+  text-align: center;
+}
+
+.feature-card p {
+  font-size: 1rem;
+  color: #5a6578; /* Softer gray */
+  line-height: 1.6;
+  text-align: center;
+}
+
+.homepage-footer {
+  margin-top: auto; /* Pushes footer to bottom */
+  padding: 25px; /* More padding */
+  text-align: center;
+  font-size: 0.95rem;
+  color: #4a5568; /* Consistent text color */
+  width: 100%;
+  border-top: 1px solid #e2e8f0; /* Subtle top border */
+}
+
+
+/* --- Styles for ClaimExtractorPage specific elements --- */
+/* Your existing .app-container could be renamed or use .claim-extractor-container for clarity */
+.claim-extractor-container {
+  /* display: flex; (already in your original App.css for app-container) */
+  /* flex-direction: column; (already in your original App.css for app-container) */
+  /* min-height: 100vh; (already in your original App.css for app-container) */
+   background-color: #f8f9fa; /* Or your preferred background for this page */
+}
+
+/* Example: Adjust app-header if used by both pages */
+.app-header {
+  /* ... your existing app-header styles ... */
+  display: flex; /* To align title and nav link */
+  align-items: center; /* Vertically align items */
+}
+
+.app-header .app-nav {
+  margin-left: auto; /* Pushes nav to the right */
+  padding-right: 20px; /* Some spacing for the nav */
+}
+
+.app-header .app-nav a {
+  color: #fff; /* Assuming white text on dark header */
+  text-decoration: none;
+  font-weight: 500;
+  padding: 8px 12px;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+}
+
+.app-header .app-nav a:hover {
+  background-color: rgba(255, 255, 255, 0.15);
+}
+
+
+
+/* Ensure body takes full height for sticky footer effect on homepage */
+html, body, #root {
+  height: 100%;
+  margin: 0;
+}
+#root {
+  display: flex;
+  flex-direction: column;
+}
