@@ -1,0 +1,37 @@
+/* animations.css
+   Pure CSS keyframes used outside framer-motion (spinners, skeletons).
+   Framer-motion handles entry/exit transitions for components; static
+   indeterminate animations live here so they don't depend on JS.
+*/
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.spinner {
+  border: 3px solid rgba(79, 70, 229, 0.18);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes shimmer {
+  0% { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--surface-2) 0%,
+    #e9eef5 50%,
+    var(--surface-2) 100%
+  );
+  background-size: 800px 100%;
+  animation: shimmer 1.4s linear infinite;
+  display: block;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spinner, .skeleton { animation-duration: 0s !important; }
+}

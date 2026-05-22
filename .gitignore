@@ -1,0 +1,34 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Environment files - never commit real secrets
+.env
+.env.local
+.env.*.local
+**/.env
+!**/.env.example
+
+# Build outputs
+dist/
+build/
+**/dist/
+**/build/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+
+# Uploads (if local disk fallback ever used)
+backend/uploads/
