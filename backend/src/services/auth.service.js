@@ -24,9 +24,9 @@ export const setAuthCookie = (res, userId) => {
   const token = signToken(userId);
   res.cookie(COOKIE_NAME, token, {
     httpOnly: true,
-    secure: env.COOKIE_SECURE,
-    sameSite: 'strict',
-    maxAge: 7 * 24 * 60 * 60 * 1000, // matches the default JWT TTL
+    secure: true,
+    sameSite: 'none',
+    maxAge: 7 * 24 * 60 * 60 * 1000,
   });
 };
 
