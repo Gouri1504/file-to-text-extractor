@@ -16,7 +16,7 @@ export const verifyJWT = asyncHandler(async (req, _res, next) => {
   // by sameSite=strict on the cookie.
   const token = req.cookies?.token;
   if (!token) {
-    throw new ApiError(401, 'Authentication required');
+    throw new ApiError(401, 'Authentication required (JWT verification failed)');
   }
 
   let decoded;
