@@ -64,8 +64,8 @@ Backend uses an **MVC + service layer** pattern:
 - **Ask your documents** (optional): semantic Q&A over your extracted
   claims with numbered citations linking back to the source document and
   section. Pinecone (free Starter) stores the vectors; embeddings come from
-  `all-MiniLM-L6-v2`, which runs locally in the backend (no API key). Setup:
-  [VECTOR_DB_DEPLOYMENT.md](VECTOR_DB_DEPLOYMENT.md)
+  `all-MiniLM-L6-v2`, which runs locally in the backend (no API key). Set
+  `PINECONE_API_KEY` (see `backend/.env.example`) to enable it.
 - Animated UI with framer-motion: page transitions, staggered card lists,
   skeleton loaders, toast notifications
 - Hardened backend: helmet, CORS allow-list, rate limiting on auth and
@@ -125,12 +125,14 @@ file-to-text-extractor/
 ├── backend/
 │   ├── src/
 │   │   ├── config/         env, db (+GridFS), firebase, gemini, pinecone
-│   │   ├── controllers/    thin HTTP wrappers
+│   │   ├── controllers/    thin HTTP wrappers (incl. chat)
 │   │   ├── middleware/     auth, upload, validate, error
 │   │   ├── models/         User, Document, Comparison
-│   │   ├── prompts/        extractClaim, compareClaims
-│   │   ├── routes/         /auth, /documents, /comparisons
-│   │   ├── services/       auth, storage, gemini, groq, ai, document, pdfRasterize
+│   │   ├── prompts/        extractClaim, compareClaims, answerQuestion
+│   │   ├── routes/         /auth, /documents, /comparisons, /chat
+│   │   ├── scripts/        downloadModel (prefetch embedder), reindex (backfill vectors)
+│   │   ├── services/       auth, storage, gemini, groq, ai, document,
+│   │   │                   pdfRasterize, chunking, embedding, vector, chat
 │   │   ├── utils/          ApiError, ApiResponse, asyncHandler
 │   │   ├── app.js          Express composition
 │   │   └── server.js       process entry point
@@ -138,15 +140,17 @@ file-to-text-extractor/
 │   └── package.json
 ├── frontend/
 │   ├── src/
-│   │   ├── api/            client + per-domain API wrappers
+│   │   ├── api/            client + per-domain API wrappers (auth, documents, comparisons, chat)
 │   │   ├── components/
-│   │   │   ├── auth/       ProtectedRoute
+│   │   │   ├── auth/       ProtectedRoute, GoogleSignIn
+│   │   │   ├── chat/       ChatPanel (Ask your documents UI)
 │   │   │   ├── documents/  Dropzone, DocumentCard/List, MarkdownViewer
 │   │   │   ├── layout/     Navbar, PageTransition
 │   │   │   └── ui/         Button, Spinner, ProgressBar, Skeleton
+│   │   ├── config/         firebase (client SDK init)
 │   │   ├── context/        AuthContext + useAuth
 │   │   ├── hooks/          useDocuments
-│   │   ├── pages/          Login, Signup, Dashboard, DocumentDetail, Compare, NotFound
+│   │   ├── pages/          Login, Signup, Dashboard, DocumentDetail, Compare, Ask, NotFound
 │   │   ├── routes/         AppRoutes (with AnimatePresence)
 │   │   ├── styles/         globals.css, animations.css
 │   │   ├── utils/          format, download
@@ -256,7 +260,8 @@ Limits worth knowing:
 - (Optional) A [Groq API key](https://console.groq.com/keys) as a fallback
   provider when Gemini fails or hits rate limits
 - (Optional) A [Firebase](https://console.firebase.google.com) project with
-  the Google sign-in provider enabled (see [VECTOR_DB_DEPLOYMENT.md](VECTOR_DB_DEPLOYMENT.md#6-google-sign-in-with-firebase-authentication))
+  the Google sign-in provider enabled - set `FIREBASE_PROJECT_ID` (backend)
+  and the `VITE_FIREBASE_*` values (frontend); see the `.env.example` files
 
 ### 1. Clone
 
@@ -412,10 +417,6 @@ that env var, and credentialed requests can't use a wildcard origin.
 ---
 
 ## Deployment Notes
-
-> **Step-by-step free deployment** (Pinecone, Render, Vercel, Atlas, and
-> Google sign-in via Firebase, including cookie settings) is in
-> [VECTOR_DB_DEPLOYMENT.md](VECTOR_DB_DEPLOYMENT.md).
 
 ### Backend
 
