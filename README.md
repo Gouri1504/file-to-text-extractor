@@ -21,7 +21,8 @@ flowchart LR
     be -->|Mongoose| db[(MongoDB)]
     be -->|GridFS| db
     be -->|REST| gemini[Google Gemini API]
-    be -->|OAuth 2.0| google[Google OAuth]
+    fe -->|Google popup| firebase[Firebase Auth]
+    be -->|verify ID token| firebase
 ```
 
 **Why the rewrite mattered**
@@ -31,7 +32,7 @@ flowchart LR
 | Gemini API key shipped to the browser   | Key lives only in backend env, never sent to client  |
 | Heavy PDF rendering on the client       | Gemini natively accepts PDFs - no pdfjs-dist needed  |
 | No persistence - results lost on reload | MongoDB + GridFS stores history per user             |
-| No accounts, no privacy boundary        | JWT-cookie auth (email/password and Google OAuth)    |
+| No accounts, no privacy boundary        | JWT-cookie auth (email/password and Google/Firebase) |
 | One 412-line monolith                   | Layered backend, page-per-route frontend             |
 
 Backend uses an **MVC + service layer** pattern:
@@ -40,7 +41,7 @@ Backend uses an **MVC + service layer** pattern:
 - **Controllers**: thin - parse `req`, call a service, return `ApiResponse`.
 - **Services**: business logic, no Express objects. Reusable from any caller.
 - **Models**: Mongoose schemas (`User`, `Document`, `Comparison`).
-- **Config**: env validation, DB + GridFS, Passport strategies, Gemini client.
+- **Config**: env validation, DB + GridFS, Firebase Admin, Gemini, Pinecone clients.
 - **Middleware**: JWT verification, multer upload, central error handler.
 
 ---
@@ -48,7 +49,8 @@ Backend uses an **MVC + service layer** pattern:
 ## Features
 
 - Email + password signup/login with bcrypt-hashed credentials
-- Google OAuth sign-in (auto-links to existing email accounts)
+- Google sign-in via Firebase Authentication (auto-links to existing
+  email accounts when the Google email is verified)
 - Drag-and-drop upload (PDF or image, up to 10 MB)
 - AI extraction into structured Markdown (claim info, patient, hospital,
   diagnosis, billing table, summary)
@@ -59,6 +61,11 @@ Backend uses an **MVC + service layer** pattern:
 - Original file storage via GridFS (re-downloadable any time)
 - AI multi-document comparison: pick 2-5 past claims, get a markdown
   report with similarities, differences, anomalies, and a recommendation
+- **Ask your documents** (optional): semantic Q&A over your extracted
+  claims with numbered citations linking back to the source document and
+  section. Pinecone (free Starter) stores the vectors; embeddings come from
+  `all-MiniLM-L6-v2`, which runs locally in the backend (no API key). Setup:
+  [VECTOR_DB_DEPLOYMENT.md](VECTOR_DB_DEPLOYMENT.md)
 - Animated UI with framer-motion: page transitions, staggered card lists,
   skeleton loaders, toast notifications
 - Hardened backend: helmet, CORS allow-list, rate limiting on auth and
@@ -80,6 +87,7 @@ Backend uses an **MVC + service layer** pattern:
 | React Dropzone    | Battle-tested drag-and-drop file uploads                         |
 | React Markdown + remark-gfm | Renders extraction output incl. GFM tables             |
 | react-hot-toast   | Non-blocking notifications (replaces `alert()`)                  |
+| Firebase Auth (web SDK) | Google sign-in popup; lazy-loaded only when used           |
 
 ### Backend
 
@@ -88,8 +96,10 @@ Backend uses an **MVC + service layer** pattern:
 | Node.js + Express | Mature, batteries-included HTTP framework                        |
 | MongoDB + Mongoose| Flexible schema for evolving document/comparison data            |
 | GridFS            | Streams large files in chunks, no separate object store needed   |
-| JWT in httpOnly cookie | XSS-resistant session token; sameSite=strict deters CSRF    |
-| Passport (Google) | Standard OAuth handshake; session disabled, JWT-only             |
+| JWT in httpOnly cookie | XSS-resistant session token; SameSite/Secure set via env      |
+| Pinecone          | Free serverless vector DB for document Q&A (optional)            |
+| @huggingface/transformers | Runs the MiniLM embedding model in-process (ONNX, CPU)   |
+| firebase-admin    | Verifies Firebase ID tokens from Google sign-in (no service key) |
 | bcryptjs          | Industry-standard password hashing                               |
 | Multer (memory)   | Parses multipart bodies straight into a Buffer for GridFS        |
 | Zod               | Validation for env, request body, params, query                  |
@@ -114,7 +124,7 @@ Backend uses an **MVC + service layer** pattern:
 file-to-text-extractor/
 ├── backend/
 │   ├── src/
-│   │   ├── config/         env, db (+GridFS), passport, gemini
+│   │   ├── config/         env, db (+GridFS), firebase, gemini, pinecone
 │   │   ├── controllers/    thin HTTP wrappers
 │   │   ├── middleware/     auth, upload, validate, error
 │   │   ├── models/         User, Document, Comparison
@@ -176,20 +186,26 @@ sequenceDiagram
 
 1. `POST /api/auth/signup` validates body, bcrypt-hashes password, creates `User`.
 2. Backend signs a JWT with `sub = user._id` and sets it as an
-   `httpOnly`, `sameSite=strict`, `secure` (in prod) cookie named `token`.
+   `httpOnly` cookie named `token` whose `SameSite`/`Secure` attributes
+   come from `COOKIE_SAMESITE`/`COOKIE_SECURE`.
 3. Frontend's axios client always sends that cookie via `withCredentials`.
 4. `verifyJWT` middleware reads the cookie, verifies it, and re-fetches
    the user from MongoDB on every request - so banned/deleted users are
    locked out immediately.
 
-### Authentication (Google OAuth)
+### Authentication (Google via Firebase)
 
-1. Frontend links to `/api/auth/google` (a full-page nav, not XHR).
-2. Passport redirects to Google's consent screen.
-3. Google calls back to `/api/auth/google/callback` with the profile.
-4. `findOrCreateGoogleUser` upserts the user (linking by email if a
-   password user already exists).
-5. Same JWT cookie is set, browser is redirected back to the SPA.
+1. The Google button is shown only when the frontend has the
+   `VITE_FIREBASE_*` config and `GET /api/auth/config` reports `googleEnabled`.
+2. Clicking it lazy-loads the Firebase SDK and opens a Google popup
+   (`signInWithPopup`). Firebase returns a short-lived ID token.
+3. The SPA sends it to `POST /api/auth/firebase`. The backend verifies it
+   with `firebase-admin` (signature, expiry, project) and requires a
+   `google.com` sign-in from the last 5 minutes.
+4. `loginWithFirebase` upserts the user by Google account id (linking by
+   email to an existing password user only when the email is verified).
+5. The same JWT cookie as email login is set. No Firebase session is kept
+   in the browser.
 
 ### AI provider fallback
 
@@ -239,8 +255,8 @@ Limits worth knowing:
 - A [Google Gemini API key](https://aistudio.google.com/app/apikey)
 - (Optional) A [Groq API key](https://console.groq.com/keys) as a fallback
   provider when Gemini fails or hits rate limits
-- (Optional) Google OAuth credentials from
-  [Google Cloud Console](https://console.cloud.google.com/apis/credentials)
+- (Optional) A [Firebase](https://console.firebase.google.com) project with
+  the Google sign-in provider enabled (see [VECTOR_DB_DEPLOYMENT.md](VECTOR_DB_DEPLOYMENT.md#6-google-sign-in-with-firebase-authentication))
 
 ### 1. Clone
 
@@ -254,7 +270,7 @@ cd file-to-text-extractor
 ```bash
 cd backend
 cp .env.example .env
-# edit .env, fill MONGO_URI, JWT_SECRET, GEMINI_API_KEY, (optionally Google OAuth)
+# edit .env, fill MONGO_URI, JWT_SECRET, GEMINI_API_KEY, (optionally FIREBASE_PROJECT_ID, PINECONE_API_KEY)
 npm install
 npm run dev
 # -> "API listening on http://localhost:5000 (development)"
@@ -292,13 +308,15 @@ authenticated session (the `token` cookie set by login/signup).
 | POST   | `/api/auth/login`                 | -    | `{ email, password }`                             | Log in, sets cookie                        |
 | POST   | `/api/auth/logout`                | -    | -                                                 | Clears cookie                              |
 | GET    | `/api/auth/me`                    | yes  | -                                                 | Current user                               |
-| GET    | `/api/auth/google`                | -    | -                                                 | Start Google OAuth (full-page redirect)    |
-| GET    | `/api/auth/google/callback`       | -    | (handled by Google)                               | OAuth callback, sets cookie, redirects FE  |
+| GET    | `/api/auth/config`                | -    | -                                                 | `{ googleEnabled }` for the login page     |
+| POST   | `/api/auth/firebase`              | -    | `{ idToken }` (JSON only)                         | Exchange Firebase Google token for cookie  |
 | GET    | `/api/documents`                  | yes  | -                                                 | List my documents (newest first)           |
 | POST   | `/api/documents`                  | yes  | `multipart/form-data` field `file`                | Upload + extract                           |
 | GET    | `/api/documents/:id`              | yes  | -                                                 | Get one (with markdown)                    |
 | DELETE | `/api/documents/:id`              | yes  | -                                                 | Delete document + GridFS file              |
 | GET    | `/api/documents/:id/file`         | yes  | -                                                 | Stream original file back                  |
+| POST   | `/api/documents/:id/reindex`      | yes  | -                                                 | Rebuild the document's vectors             |
+| POST   | `/api/chat`                       | yes  | `{ question, documentIds? }`                      | Answer with citations (needs Pinecone)     |
 | GET    | `/api/comparisons`                | yes  | -                                                 | List my comparisons                        |
 | POST   | `/api/comparisons`                | yes  | `{ documentIds: string[] }` (2-5)                 | Run AI comparison                          |
 | GET    | `/api/comparisons/:id`            | yes  | -                                                 | Get one                                    |
@@ -395,15 +413,20 @@ that env var, and credentialed requests can't use a wildcard origin.
 
 ## Deployment Notes
 
+> **Step-by-step free deployment** (Pinecone, Render, Vercel, Atlas, and
+> Google sign-in via Firebase, including cookie settings) is in
+> [VECTOR_DB_DEPLOYMENT.md](VECTOR_DB_DEPLOYMENT.md).
+
 ### Backend
 
 Render, Railway, Fly.io, or any Node host.
 
 - Set every variable from `backend/.env.example` in the platform UI.
-- `NODE_ENV=production`, `COOKIE_SECURE=true`.
+- `NODE_ENV=production`, `COOKIE_SECURE=true`, and `COOKIE_SAMESITE=none`
+  if the frontend is on a different site than the API.
 - Set `CLIENT_URL` to your deployed frontend URL.
-- Update `GOOGLE_CALLBACK_URL` to the deployed backend URL and add the
-  same URL to the OAuth client's "Authorized redirect URIs".
+- Set `FIREBASE_PROJECT_ID` (and the frontend's `VITE_FIREBASE_*` values),
+  and add the frontend domain to Firebase's "Authorized domains".
 
 ### Frontend
 
@@ -431,8 +454,3 @@ MongoDB Atlas free tier is sufficient. Whitelist the backend's egress IPs
 
 ---
 
-## Credits
-
-Originally a portfolio prototype; rebuilt as a full-stack platform to
-demonstrate authentication, persistence, AI integration, and clean
-backend architecture.

@@ -1,5 +1,5 @@
 // models/User.model.js
-// User accounts for both auth strategies (email/password AND Google OAuth).
+// User accounts for both auth strategies (email/password AND Google via Firebase).
 // passwordHash and googleId are both optional because either path may be
 // missing - a Google-only user has no password, and an email-only user has
 // no googleId. Index on email is unique; on googleId it's sparse-unique so

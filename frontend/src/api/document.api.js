@@ -10,6 +10,8 @@ export const apiGetDocument = (id) => unwrap(client.get(`/documents/${id}`));
 
 export const apiDeleteDocument = (id) => unwrap(client.delete(`/documents/${id}`));
 
+export const apiReindexDocument = (id) => unwrap(client.post(`/documents/${id}/reindex`));
+
 export const apiUploadDocument = (file, onProgress) => {
   const form = new FormData();
   form.append('file', file);

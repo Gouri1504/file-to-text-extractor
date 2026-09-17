@@ -20,6 +20,7 @@
 import env from '../config/env.js';
 import EXTRACT_CLAIM_PROMPT from '../prompts/extractClaim.prompt.js';
 import buildComparePrompt from '../prompts/compareClaims.prompt.js';
+import buildAnswerPrompt from '../prompts/answerQuestion.prompt.js';
 import { rasterizePdf } from './pdfRasterize.service.js';
 
 const ENDPOINT = 'https://api.groq.com/openai/v1/chat/completions';
@@ -148,5 +149,13 @@ export const compareClaims = async (documents) =>
     {
       role: 'user',
       content: buildComparePrompt(documents),
+    },
+  ]);
+
+export const answerQuestion = async (question, sources) =>
+  callGroq([
+    {
+      role: 'user',
+      content: buildAnswerPrompt(question, sources),
     },
   ]);

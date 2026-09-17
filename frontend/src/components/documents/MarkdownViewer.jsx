@@ -6,13 +6,15 @@
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
-export default function MarkdownViewer({ markdown }) {
+// `components` optionally overrides element renderers (e.g. chat answers
+// turn citation links into chips).
+export default function MarkdownViewer({ markdown, components }) {
   if (!markdown) {
     return <div className="empty-state"><p>No content to display.</p></div>;
   }
   return (
     <div className="markdown">
-      <ReactMarkdown remarkPlugins={[remarkGfm]}>{markdown}</ReactMarkdown>
+      <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>{markdown}</ReactMarkdown>
     </div>
   );
 }

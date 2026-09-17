@@ -13,6 +13,7 @@ import {
   getDocument,
   deleteDocument,
   downloadFile,
+  reindexDocument,
 } from '../controllers/document.controller.js';
 
 const router = Router();
@@ -31,5 +32,6 @@ router.post('/', uploadLimiter, uploadSingle, uploadDocument);
 router.get('/:id', getDocument);
 router.delete('/:id', deleteDocument);
 router.get('/:id/file', downloadFile);
+router.post('/:id/reindex', uploadLimiter, reindexDocument);
 
 export default router;

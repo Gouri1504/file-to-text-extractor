@@ -32,3 +32,5 @@ Thumbs.db
 
 # Uploads (if local disk fallback ever used)
 backend/uploads/
+
+learning.md

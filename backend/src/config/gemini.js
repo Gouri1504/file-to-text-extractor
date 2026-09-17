@@ -9,7 +9,7 @@ const genAI = new GoogleGenerativeAI(env.GEMINI_API_KEY);
 
 // "flash" variants are tuned for speed + cost over peak accuracy, which is
 // the right trade-off for document extraction at interactive latencies.
-export const MODEL_NAME = 'gemini-2.0-flash';
+export const MODEL_NAME = 'gemini-2.5-flash';
 
 export const getModel = () => genAI.getGenerativeModel({ model: MODEL_NAME });
 

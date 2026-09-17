@@ -24,6 +24,12 @@ const schema = z.object({
     .default('false')
     .transform((v) => v === 'true'),
 
+  // SameSite for the auth cookie. 'lax' is right when the SPA and API share
+  // a site (local dev, or a same-site proxy). A cross-site deploy (e.g.
+  // Vercel frontend + Render API) needs 'none', which browsers only accept
+  // together with COOKIE_SECURE=true.
+  COOKIE_SAMESITE: z.enum(['lax', 'strict', 'none']).default('lax'),
+
   CLIENT_URL: z.string().url(),
 
   GEMINI_API_KEY: z.string().min(1, 'GEMINI_API_KEY is required'),
@@ -35,11 +41,21 @@ const schema = z.object({
   GROQ_API_KEY: z.string().optional(),
   GROQ_MODEL: z.string().default('meta-llama/llama-4-scout-17b-16e-instruct'),
 
-  // Google OAuth is optional at boot (email/password still works without it),
-  // but if any one is set, all three must be set together.
-  GOOGLE_CLIENT_ID: z.string().optional(),
-  GOOGLE_CLIENT_SECRET: z.string().optional(),
-  GOOGLE_CALLBACK_URL: z.string().url().optional(),
+  // Optional RAG ("ask your documents"). Pinecone stores the vectors; the
+  // embedding model runs locally via @huggingface/transformers, so no key
+  // is needed for it. Without PINECONE_API_KEY the chat feature is disabled.
+  PINECONE_API_KEY: z.string().optional(),
+  PINECONE_INDEX: z.string().default('claim-extractor'),
+  // Where the index is auto-created if missing. aws/us-east-1 is the
+  // region available on Pinecone's free Starter plan.
+  PINECONE_CLOUD: z.enum(['aws', 'gcp', 'azure']).default('aws'),
+  PINECONE_REGION: z.string().default('us-east-1'),
+  EMBEDDING_MODEL: z.string().default('Xenova/all-MiniLM-L6-v2'),
+
+  // Firebase Authentication (Google sign-in) is optional - email/password
+  // works without it. Verifying Firebase ID tokens only needs the project
+  // id, not a service-account key.
+  FIREBASE_PROJECT_ID: z.string().optional(),
 });
 
 const parsed = schema.safeParse(process.env);
@@ -52,16 +68,13 @@ if (!parsed.success) {
 
 const env = parsed.data;
 
-// Cross-field rule: Google OAuth credentials must be all-or-nothing.
-const googleVars = [env.GOOGLE_CLIENT_ID, env.GOOGLE_CLIENT_SECRET, env.GOOGLE_CALLBACK_URL];
-const someGoogle = googleVars.some(Boolean);
-const allGoogle = googleVars.every(Boolean);
-if (someGoogle && !allGoogle) {
-  console.error('Google OAuth: set ALL of GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_CALLBACK_URL or none.');
+if (env.COOKIE_SAMESITE === 'none' && !env.COOKIE_SECURE) {
+  console.error('COOKIE_SAMESITE=none requires COOKIE_SECURE=true (browsers reject it otherwise).');
   process.exit(1);
 }
 
-env.GOOGLE_OAUTH_ENABLED = allGoogle;
+env.FIREBASE_AUTH_ENABLED = Boolean(env.FIREBASE_PROJECT_ID);
 env.GROQ_FALLBACK_ENABLED = Boolean(env.GROQ_API_KEY);
+env.RAG_ENABLED = Boolean(env.PINECONE_API_KEY);
 
 export default env;

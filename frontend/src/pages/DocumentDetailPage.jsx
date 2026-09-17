@@ -11,7 +11,8 @@ import PageTransition from '../components/layout/PageTransition.jsx';
 import MarkdownViewer from '../components/documents/MarkdownViewer.jsx';
 import Button from '../components/ui/Button.jsx';
 import Skeleton from '../components/ui/Skeleton.jsx';
-import { apiGetDocument, documentFileUrl } from '../api/document.api.js';
+import ChatPanel from '../components/chat/ChatPanel.jsx';
+import { apiGetDocument, apiReindexDocument, documentFileUrl } from '../api/document.api.js';
 import { copyToClipboard, downloadText, triggerDownload } from '../utils/download.js';
 import { formatDate, formatSize } from '../utils/format.js';
 
@@ -20,6 +21,7 @@ export default function DocumentDetailPage() {
   const [doc, setDoc] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [reindexing, setReindexing] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -55,6 +57,23 @@ export default function DocumentDetailPage() {
 
   const handleDownloadOriginal = () => {
     triggerDownload(documentFileUrl(doc._id), doc.filename);
+  };
+
+  const handleReindex = async () => {
+    setReindexing(true);
+    try {
+      const data = await apiReindexDocument(doc._id);
+      setDoc(data.document);
+      if (data.document.indexStatus === 'indexed') {
+        toast.success('Document is now searchable');
+      } else {
+        toast.error(data.document.indexError || 'Indexing failed');
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Re-index failed');
+    } finally {
+      setReindexing(false);
+    }
   };
 
   if (loading) {
@@ -99,12 +118,26 @@ export default function DocumentDetailPage() {
               {doc.size != null && <> {' \u00b7 '} <span>{formatSize(doc.size)}</span></>}
               {' \u00b7 '}
               <span className={`badge badge--${doc.status}`}>{doc.status}</span>
+              {doc.status === 'done' && (
+                <>
+                  {' '}
+                  <span
+                    className={`badge badge--index-${doc.indexStatus || 'none'}`}
+                    title={doc.indexError || undefined}
+                  >
+                    {doc.indexStatus === 'indexed' ? 'searchable' : 'not searchable'}
+                  </span>
+                </>
+              )}
             </div>
           </div>
           <div className="actions">
             <Button variant="ghost" onClick={handleCopy}>Copy</Button>
             <Button variant="ghost" onClick={handleDownloadMd}>Download .md</Button>
             <Button variant="ghost" onClick={handleDownloadOriginal}>Download original</Button>
+            {doc.status === 'done' && doc.indexStatus !== 'indexed' && (
+              <Button variant="ghost" onClick={handleReindex} loading={reindexing}>Re-index</Button>
+            )}
           </div>
         </motion.div>
 
@@ -117,6 +150,18 @@ export default function DocumentDetailPage() {
         <div className="result-panel">
           <MarkdownViewer markdown={doc.markdown} />
         </div>
+
+        {doc.indexStatus === 'indexed' && (
+          <>
+            <h2 className="section-title">Ask about this document</h2>
+            <div className="result-panel">
+              <ChatPanel
+                documentIds={[doc._id]}
+                emptyHint="Ask a question about this claim. Answers cite the section they came from."
+              />
+            </div>
+          </>
+        )}
       </section>
     </PageTransition>
   );

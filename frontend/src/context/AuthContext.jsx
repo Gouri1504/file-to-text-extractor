@@ -5,9 +5,24 @@
 // context (via the useAuth hook) instead of fetching /me itself.
 
 import { createContext, useContext, useEffect, useState, useCallback } from 'react';
-import { apiMe, apiLogin, apiSignup, apiLogout } from '../api/auth.api.js';
+import {
+  apiMe,
+  apiLogin,
+  apiSignup,
+  apiLogout,
+  apiAuthConfig,
+  apiFirebaseLogin,
+} from '../api/auth.api.js';
 
 const AuthContext = createContext(null);
+
+// Checked here (not in config/firebase.js) so the Firebase SDK can stay in
+// a lazily loaded chunk until someone actually clicks the Google button.
+const firebaseConfigured = Boolean(
+  import.meta.env.VITE_FIREBASE_API_KEY &&
+    import.meta.env.VITE_FIREBASE_AUTH_DOMAIN &&
+    import.meta.env.VITE_FIREBASE_PROJECT_ID,
+);
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
@@ -15,6 +30,9 @@ export function AuthProvider({ children }) {
   // states. ProtectedRoute uses it to avoid flashing the login page while
   // /me is still in flight.
   const [loading, setLoading] = useState(true);
+  // Only show "Continue with Google" when both the frontend (Firebase web
+  // config) and the backend (FIREBASE_PROJECT_ID) are set up.
+  const [googleEnabled, setGoogleEnabled] = useState(false);
 
   const refresh = useCallback(async () => {
     try {
@@ -32,6 +50,22 @@ export function AuthProvider({ children }) {
     })();
   }, [refresh]);
 
+  useEffect(() => {
+    if (!firebaseConfigured) return;
+    apiAuthConfig()
+      .then((data) => {
+        const enabled = Boolean(data?.googleEnabled);
+        if (!enabled) {
+          console.warn(
+            '[auth] Google sign-in hidden: the backend has no FIREBASE_PROJECT_ID ' +
+              '(set it in backend/.env and restart the API).',
+          );
+        }
+        setGoogleEnabled(enabled);
+      })
+      .catch(() => setGoogleEnabled(false));
+  }, []);
+
   // Listen for the global "session expired" event dispatched by the axios
   // 401 interceptor. Keeps individual pages free of auth-error boilerplate.
   useEffect(() => {
@@ -42,6 +76,15 @@ export function AuthProvider({ children }) {
 
   const login = async (credentials) => {
     const data = await apiLogin(credentials);
+    setUser(data.user);
+    return data.user;
+  };
+
+  // Google popup via Firebase -> ID token -> backend sets our session cookie.
+  const loginWithGoogle = async () => {
+    const { getGoogleIdToken } = await import('../config/firebase.js');
+    const idToken = await getGoogleIdToken();
+    const data = await apiFirebaseLogin(idToken);
     setUser(data.user);
     return data.user;
   };
@@ -63,7 +106,7 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, signup, logout, refresh }}>
+    <AuthContext.Provider value={{ user, loading, googleEnabled, login, loginWithGoogle, signup, logout, refresh }}>
       {children}
     </AuthContext.Provider>
   );

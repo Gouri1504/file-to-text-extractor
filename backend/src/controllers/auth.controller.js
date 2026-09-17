@@ -10,7 +10,7 @@ import {
   loginWithEmail,
   setAuthCookie,
   clearAuthCookie,
-  findOrCreateGoogleUser,
+  loginWithFirebase,
 } from '../services/auth.service.js';
 import env from '../config/env.js';
 
@@ -35,13 +35,15 @@ export const me = asyncHandler(async (req, res) =>
   new ApiResponse(200, { user: req.user }, 'OK').send(res),
 );
 
-// Google OAuth: passport hands us the profile via req.user (NOT the User
-// document - that's our own model). We upsert, mint a cookie, and bounce
-// the browser back to the frontend.
-export const googleCallback = asyncHandler(async (req, res) => {
-  const profile = req.user;
-  const user = await findOrCreateGoogleUser(profile);
+// Lets the SPA decide which login options to render.
+export const authConfig = (_req, res) =>
+  new ApiResponse(200, { googleEnabled: env.FIREBASE_AUTH_ENABLED }, 'OK').send(res);
+
+// Google sign-in via Firebase: the SPA signs in with a popup, then sends the
+// Firebase ID token here. We verify it, upsert the user, and issue our own
+// JWT cookie - from here on the session is identical to email login.
+export const firebaseLogin = asyncHandler(async (req, res) => {
+  const user = await loginWithFirebase(req.body.idToken);
   setAuthCookie(res, user._id);
-  // Frontend reads the cookie via /me on mount. We just redirect home.
-  res.redirect(env.CLIENT_URL);
+  return new ApiResponse(200, { user }, 'Logged in').send(res);
 });

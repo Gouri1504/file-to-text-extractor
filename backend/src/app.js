@@ -8,13 +8,14 @@ import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import cookieParser from 'cookie-parser';
+import mongoose from 'mongoose';
 
 import env from './config/env.js';
-import passport from './config/passport.js';
 
 import authRoutes from './routes/auth.routes.js';
 import documentRoutes from './routes/document.routes.js';
 import comparisonRoutes from './routes/comparison.routes.js';
+import chatRoutes from './routes/chat.routes.js';
 import { errorHandler } from './middleware/error.middleware.js';
 
 const app = express();
@@ -39,21 +40,56 @@ app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
-// Passport is initialized for the OAuth handshake only (no sessions).
-app.use(passport.initialize());
-
 if (env.NODE_ENV !== 'test') {
   app.use(morgan(env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 }
 
-// Liveness probe - useful for uptime monitors and platform health checks.
-app.get('/api/health', (_req, res) =>
-  res.json({ success: true, message: 'ok', uptime: process.uptime() }),
-);
+// Liveness / database health probe.
+//
+// MongoDB readyState:
+// 0 = disconnected
+// 1 = connected
+// 2 = connecting
+// 3 = disconnecting
+app.get('/api/health', (_req, res) => {
+  const mongoState = mongoose.connection.readyState;
+  const mongoConnected = mongoState === 1;
+
+  const response = {
+    success: mongoConnected,
+    message: mongoConnected
+      ? 'API and MongoDB are healthy'
+      : 'API is running but MongoDB is not connected',
+
+    uptime: process.uptime(),
+
+    mongodb: {
+      connected: mongoConnected,
+      readyState: mongoState,
+    },
+
+    rag: {
+      enabled: env.RAG_ENABLED,
+    },
+  };
+
+  // Only expose connection details when MongoDB is actually connected.
+  if (mongoConnected) {
+    response.mongodb.host = mongoose.connection.host;
+    response.mongodb.database = mongoose.connection.name;
+
+    // This is the safe connection target.
+    // It does NOT expose your MongoDB username/password.
+    response.mongodb.url = `mongodb://${mongoose.connection.host}/${mongoose.connection.name}`;
+  }
+
+  return res.status(mongoConnected ? 200 : 503).json(response);
+});
 
 app.use('/api/auth', authRoutes);
 app.use('/api/documents', documentRoutes);
 app.use('/api/comparisons', comparisonRoutes);
+app.use('/api/chat', chatRoutes);
 
 // 404 for unknown /api/* routes. Anything else falls through and lets the
 // platform decide (helpful when fronting a static build).

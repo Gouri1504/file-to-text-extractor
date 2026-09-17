@@ -13,6 +13,26 @@ import { putBuffer, deleteFile } from './storage.service.js';
 // Goes through ai.service so Gemini failures auto-fall-back to Groq when
 // configured. The rest of this file is provider-agnostic.
 import { extractClaim, compareClaims } from './ai.service.js';
+import env from '../config/env.js';
+import { indexDocument, deleteDocumentVectors } from './vector.service.js';
+
+// Best-effort: indexing problems are recorded on the row but never fail the
+// upload - the extracted markdown is still useful without chat, and the
+// user can re-index later.
+const indexForSearch = async (doc) => {
+  if (!env.RAG_ENABLED) return doc;
+  try {
+    doc.chunkCount = await indexDocument(doc);
+    doc.indexStatus = 'indexed';
+    doc.indexError = undefined;
+  } catch (err) {
+    console.error(`[rag] indexing failed for ${doc._id}:`, err.message);
+    doc.indexStatus = 'failed';
+    doc.indexError = err.message?.slice(0, 500) || 'Indexing failed';
+  }
+  await doc.save();
+  return doc;
+};
 
 export const createAndExtract = async ({ userId, file }) => {
   // 1) Persist the original bytes first - if Gemini fails later, the user
@@ -51,7 +71,7 @@ export const createAndExtract = async ({ userId, file }) => {
     throw new ApiError(502, 'AI extraction failed: ' + doc.error);
   }
 
-  return doc;
+  return indexForSearch(doc);
 };
 
 export const listForUser = (userId) =>
@@ -66,9 +86,26 @@ export const getOwnedDocument = async (userId, id) => {
 
 export const deleteOwnedDocument = async (userId, id) => {
   const doc = await getOwnedDocument(userId, id);
+  if (env.RAG_ENABLED && doc.indexStatus !== 'none') {
+    // Don't block deletion on Pinecone being unreachable; orphaned vectors
+    // are harmless because search results are re-checked against the user.
+    await deleteDocumentVectors(doc._id).catch((err) =>
+      console.error(`[rag] vector cleanup failed for ${doc._id}:`, err.message),
+    );
+  }
   await deleteFile(doc.fileId);
   await doc.deleteOne();
 };
+
+export const reindexOwnedDocument = async (userId, id) => {
+  if (!env.RAG_ENABLED) throw new ApiError(503, 'Document Q&A is not configured on this server');
+  const doc = await getOwnedDocument(userId, id);
+  if (doc.status !== 'done') throw new ApiError(400, 'Only processed documents can be indexed');
+  return indexForSearch(doc);
+};
+
+// Used by the reindex script.
+export { indexForSearch };
 
 // --- Comparisons ---------------------------------------------------------
 

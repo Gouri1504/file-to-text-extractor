@@ -33,6 +33,7 @@ export default function Navbar() {
         <nav className="navbar__links">
           <NavLink to="/" end className="navbar__link">Dashboard</NavLink>
           <NavLink to="/compare" className="navbar__link">Compare</NavLink>
+          <NavLink to="/ask" className="navbar__link">Ask</NavLink>
         </nav>
       )}
 

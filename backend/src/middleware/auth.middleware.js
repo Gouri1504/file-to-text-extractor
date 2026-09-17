@@ -13,10 +13,11 @@ import asyncHandler from '../utils/asyncHandler.js';
 export const verifyJWT = asyncHandler(async (req, _res, next) => {
   // We deliberately accept the token from a cookie only (not a header) for
   // session-style auth between our own SPA and API. CSRF risk is mitigated
-  // by sameSite=strict on the cookie.
+  // by the cookie's SameSite setting plus CORS pinned to CLIENT_URL (state-
+  // changing routes take JSON/multipart via XHR, which CORS preflights).
   const token = req.cookies?.token;
   if (!token) {
-    throw new ApiError(401, 'Authentication required');
+    throw new ApiError(401, 'Authentication required (JWT verification failed)');
   }
 
   let decoded;

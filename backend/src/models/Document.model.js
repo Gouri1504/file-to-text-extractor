@@ -31,6 +31,16 @@ const documentSchema = new mongoose.Schema(
       index: true,
     },
     error: { type: String },
+
+    // Vector-index state for "ask your documents". Independent of `status`:
+    // a document can be extracted fine but not (yet) indexed.
+    indexStatus: {
+      type: String,
+      enum: ['none', 'indexed', 'failed'],
+      default: 'none',
+    },
+    chunkCount: { type: Number, default: 0 },
+    indexError: { type: String },
   },
   { timestamps: true },
 );

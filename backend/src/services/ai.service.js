@@ -56,3 +56,12 @@ export const compareClaims = (documents) =>
     primary: () => gemini.compareClaims(documents),
     fallback: env.GROQ_FALLBACK_ENABLED ? () => groq.compareClaims(documents) : null,
   });
+
+export const answerQuestion = (question, sources) =>
+  withFallback({
+    label: 'answerQuestion',
+    primary: () => gemini.answerQuestion(question, sources),
+    fallback: env.GROQ_FALLBACK_ENABLED
+      ? () => groq.answerQuestion(question, sources)
+      : null,
+  });

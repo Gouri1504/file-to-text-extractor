@@ -11,6 +11,7 @@ import SignupPage from '../pages/SignupPage.jsx';
 import DashboardPage from '../pages/DashboardPage.jsx';
 import DocumentDetailPage from '../pages/DocumentDetailPage.jsx';
 import ComparePage from '../pages/ComparePage.jsx';
+import AskPage from '../pages/AskPage.jsx';
 import NotFoundPage from '../pages/NotFoundPage.jsx';
 import ProtectedRoute from '../components/auth/ProtectedRoute.jsx';
 
@@ -42,6 +43,14 @@ export default function AppRoutes() {
           element={
             <ProtectedRoute>
               <ComparePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/ask"
+          element={
+            <ProtectedRoute>
+              <AskPage />
             </ProtectedRoute>
           }
         />

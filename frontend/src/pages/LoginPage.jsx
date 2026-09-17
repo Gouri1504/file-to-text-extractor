@@ -8,7 +8,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { motion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext.jsx';
-import { googleLoginUrl } from '../api/auth.api.js';
+import GoogleSignIn from '../components/auth/GoogleSignIn.jsx';
 import Button from '../components/ui/Button.jsx';
 import PageTransition from '../components/layout/PageTransition.jsx';
 
@@ -27,14 +27,6 @@ export default function LoginPage() {
   useEffect(() => {
     if (user) navigate(redirectTo, { replace: true });
   }, [user, navigate, redirectTo]);
-
-  // Surface OAuth callback errors via the ?error=oauth query string.
-  useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    if (params.get('error') === 'oauth') {
-      toast.error('Google sign-in was cancelled or failed.');
-    }
-  }, [location.search]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -85,11 +77,7 @@ export default function LoginPage() {
           <Button type="submit" loading={submitting}>Sign in</Button>
         </form>
 
-        <div className="divider"><span>or</span></div>
-
-        <a className="btn btn--google" href={googleLoginUrl()}>
-          Continue with Google
-        </a>
+        <GoogleSignIn />
 
         <p className="auth-card__footer">
           New here? <Link to="/signup">Create an account</Link>

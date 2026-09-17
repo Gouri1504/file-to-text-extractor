@@ -12,6 +12,7 @@
 import { getModel } from '../config/gemini.js';
 import EXTRACT_CLAIM_PROMPT from '../prompts/extractClaim.prompt.js';
 import buildComparePrompt from '../prompts/compareClaims.prompt.js';
+import buildAnswerPrompt from '../prompts/answerQuestion.prompt.js';
 
 export const extractClaim = async ({ buffer, mimeType }) => {
   const model = getModel();
@@ -53,6 +54,27 @@ export const compareClaims = async (documents) => {
   const text = result.response.text();
   if (!text || !text.trim()) {
     throw new Error('Gemini returned an empty comparison');
+  }
+  return text.trim();
+};
+
+// Grounded Q&A over retrieved chunks (text-only, like compareClaims).
+export const answerQuestion = async (question, sources) => {
+  const model = getModel();
+  const result = await model.generateContent({
+    contents: [
+      {
+        role: 'user',
+        parts: [{ text: buildAnswerPrompt(question, sources) }],
+      },
+    ],
+    // Low temperature keeps answers close to the source text.
+    generationConfig: { temperature: 0.1 },
+  });
+
+  const text = result.response.text();
+  if (!text || !text.trim()) {
+    throw new Error('Gemini returned an empty answer');
   }
   return text.trim();
 };

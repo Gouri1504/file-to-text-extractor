@@ -11,6 +11,7 @@ import {
   listForUser,
   getOwnedDocument,
   deleteOwnedDocument,
+  reindexOwnedDocument,
 } from '../services/document.service.js';
 import { openDownloadStream } from '../services/storage.service.js';
 
@@ -33,6 +34,13 @@ export const getDocument = asyncHandler(async (req, res) => {
 export const deleteDocument = asyncHandler(async (req, res) => {
   await deleteOwnedDocument(req.user._id, req.params.id);
   return new ApiResponse(200, null, 'Deleted').send(res);
+});
+
+// Rebuilds a document's vectors (e.g. after a failed index or for docs
+// uploaded before Q&A was enabled).
+export const reindexDocument = asyncHandler(async (req, res) => {
+  const doc = await reindexOwnedDocument(req.user._id, req.params.id);
+  return new ApiResponse(200, { document: doc }, 'Re-indexed').send(res);
 });
 
 // Stream the original file back. Used by the "Download original" button

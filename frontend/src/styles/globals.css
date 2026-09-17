@@ -527,6 +527,154 @@ h2 { font-size: 1.35rem; }
 }
 .markdown pre code { background: transparent; padding: 0; }
 
+/* ============================== Ask / chat ============================== */
+
+.badge--index-indexed { background: var(--primary-soft); color: var(--primary); }
+.badge--index-none,
+.badge--index-failed { background: var(--surface-2); color: var(--text-muted); }
+
+button.chip { border: 1px solid transparent; cursor: pointer; font-family: inherit; }
+.chip--active { background: var(--primary); color: #fff; }
+.chip--active:hover { background: var(--primary-hover); }
+.chip--clear { background: transparent; color: var(--text-muted); border-color: var(--border); }
+
+.ask-scope { margin-bottom: 1.25rem; }
+.ask-scope__label { font-size: 0.85rem; font-weight: 500; color: var(--text-muted); }
+.ask-scope__note { margin: 0.6rem 0 0; font-size: 0.85rem; }
+
+.chat { display: flex; flex-direction: column; gap: 1rem; }
+.chat__log {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+.chat__empty { margin: 0; }
+
+.chat__msg { border-radius: var(--radius); max-width: 100%; }
+.chat__msg--user {
+  align-self: flex-end;
+  margin-left: auto;
+  width: fit-content;
+  max-width: 85%;
+  background: var(--primary);
+  color: #fff;
+  padding: 0.55rem 0.9rem;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.chat__msg--assistant {
+  background: var(--surface-2);
+  padding: 0.75rem 1rem;
+}
+.chat__msg--assistant .markdown > :first-child { margin-top: 0; }
+.chat__msg--assistant .markdown > :last-child { margin-bottom: 0; }
+
+.chat__thinking { display: flex; gap: 0.3rem; width: fit-content; }
+.chat__thinking span {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  animation: chat-dot 1s infinite ease-in-out;
+}
+.chat__thinking span:nth-child(2) { animation-delay: 0.15s; }
+.chat__thinking span:nth-child(3) { animation-delay: 0.3s; }
+@keyframes chat-dot {
+  0%, 80%, 100% { opacity: 0.3; transform: translateY(0); }
+  40% { opacity: 1; transform: translateY(-3px); }
+}
+
+.chat__form { display: flex; gap: 0.6rem; align-items: flex-end; }
+.chat__input {
+  flex: 1;
+  min-width: 0;
+  resize: vertical;
+  font: inherit;
+  padding: 0.6rem 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+}
+.chat__input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
+}
+
+/* Inline citation marker, e.g. [2] */
+.cite {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.35em;
+  height: 1.35em;
+  padding: 0 0.3em;
+  margin: 0 0.1em;
+  border: none;
+  border-radius: 999px;
+  background: var(--primary-soft);
+  color: var(--primary);
+  font: 600 0.72rem/1 inherit;
+  vertical-align: super;
+  cursor: pointer;
+}
+button.cite:hover { background: var(--primary); color: #fff; }
+.cite--static { vertical-align: middle; cursor: default; }
+
+.sources {
+  margin-top: 0.85rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.sources__title {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+.source {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.5rem 0.7rem;
+}
+.source__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+}
+.source__doc { font-weight: 600; overflow-wrap: anywhere; }
+.source__section { color: var(--text-muted); }
+.source__snippet {
+  margin: 0.35rem 0 0;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.source--flash { animation: source-flash 1.2s ease-out; }
+@keyframes source-flash {
+  0% { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.25); }
+  100% { border-color: var(--border); box-shadow: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chat__thinking span, .source--flash { animation: none; }
+}
+
 /* ============================== Responsive ============================== */
 
 @media (max-width: 720px) {
